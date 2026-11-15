@@ -16,11 +16,24 @@ variable "instance_type" {
 # each.key is the component name used by Ansible (frontend, catalogue, mysql).
 # tier is "db" or "app", so the database can be provisioned first.
 # ports feeds the security group dynamic block.
+# instance_count, lb_internal, and health_path are for application components.
+# MySQL does not use them: it stays one instance with no load balancer.
 variable "components" {
   type = map(object({
-    tier  = string
-    ports = map(number)
+    tier           = string
+    ports          = map(number)
+    instance_count = optional(number, 1)
+    lb_internal    = optional(bool, false)
+    health_path    = optional(string, "/")
   }))
+
+  validation {
+    condition = alltrue([
+      for component in var.components :
+      component.tier != "app" || component.instance_count >= 1
+    ])
+    error_message = "Application instance_count must be at least 1."
+  }
 }
 
 variable "zone_id" {

@@ -30,27 +30,28 @@ resource "null_resource" "db" {
 
 # Catalogue loads its schema from mysql.hdevops09.online, so the database
 # play must finish before the application plays start.
+# component_name stays frontend or catalogue, including when instance_count is raised.
 resource "null_resource" "app" {
   depends_on = [null_resource.db]
-  for_each   = local.app_components
+  for_each   = local.app_instances
 
   triggers = {
-    instance_id = aws_instance.main[each.key].id
-    private_ip  = aws_instance.main[each.key].private_ip
-    dns_name    = aws_route53_record.main[each.key].fqdn
+    instance_id = aws_instance.app[each.key].id
+    private_ip  = aws_instance.app[each.key].private_ip
+    dns_name    = aws_route53_record.app[each.value.component_name].fqdn
   }
 
   provisioner "remote-exec" {
     connection {
       type     = "ssh"
-      host     = aws_instance.main[each.key].public_ip
+      host     = aws_instance.app[each.key].public_ip
       user     = var.ssh_user
       password = var.ssh_password
     }
 
     inline = [
       "sudo dnf install ansible git -y",
-      "ansible-pull -U ${var.ansible_repo} roboshop.yml -e component_name=${each.key}"
+      "ansible-pull -U ${var.ansible_repo} roboshop.yml -e component_name=${each.value.component_name}"
     ]
   }
 }

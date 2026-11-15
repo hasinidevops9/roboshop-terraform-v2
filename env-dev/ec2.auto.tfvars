@@ -4,14 +4,20 @@ instance_type = "t3.small"
 
 components = {
   frontend = {
-    tier = "app"
+    tier           = "app"
+    instance_count = 1
+    lb_internal    = false
+    health_path    = "/"
     ports = {
       ssh  = 22
       http = 80
     }
   }
   catalogue = {
-    tier = "app"
+    tier           = "app"
+    instance_count = 1
+    lb_internal    = true
+    health_path    = "/health"
     ports = {
       ssh = 22
       app = 8002
