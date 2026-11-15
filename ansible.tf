@@ -1,4 +1,3 @@
-```hcl
 # Provisioners run during resource creation.
 # A null_resource runs again when its triggers change.
 #
@@ -61,4 +60,3 @@ resource "null_resource" "app" {
     ]
   }
 }
-```
