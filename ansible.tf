@@ -1,8 +1,8 @@
-# Provisioners on the instance run only at create time.
-# A null_resource can run again when the trigger values change.
+# Provisioners run during resource creation.
+# A null_resource runs again when its triggers change.
 #
-# roboshop.yml selects the role using component_name.
-# ansible-pull runs the playbook directly on the target instance.
+# Python 3.14 is used to install Ansible.
+# ansible-pull executes the RoboShop playbook locally.
 
 resource "null_resource" "db" {
   for_each = local.db_components
@@ -11,7 +11,7 @@ resource "null_resource" "db" {
     instance_id               = aws_instance.main[each.key].id
     private_ip                = aws_instance.main[each.key].private_ip
     dns_name                  = aws_route53_record.main[each.key].fqdn
-    ansible_bootstrap_version = "2"
+    ansible_bootstrap_version = "3"
   }
 
   provisioner "remote-exec" {
@@ -25,17 +25,13 @@ resource "null_resource" "db" {
     inline = [
       "sudo dnf install -y python3.14-pip git",
       "sudo python3.14 -m pip install ansible",
-      "sudo python3.14 -m ansible.cli.pull -U ${var.ansible_repo} roboshop.yml -e component_name=${each.key}"
+      "sudo /usr/local/bin/ansible-pull -U ${var.ansible_repo} roboshop.yml -e component_name=${each.key}"
     ]
   }
 }
 
 
-# Catalogue depends on MySQL.
-# Database provisioning completes before application provisioning starts.
-#
-# component_name remains frontend or catalogue,
-# including when instance_count is increased.
+# Application provisioning starts after database provisioning.
 
 resource "null_resource" "app" {
   depends_on = [null_resource.db]
@@ -46,7 +42,7 @@ resource "null_resource" "app" {
     instance_id               = aws_instance.app[each.key].id
     private_ip                = aws_instance.app[each.key].private_ip
     dns_name                  = aws_route53_record.app[each.value.component_name].fqdn
-    ansible_bootstrap_version = "2"
+    ansible_bootstrap_version = "3"
   }
 
   provisioner "remote-exec" {
@@ -60,7 +56,7 @@ resource "null_resource" "app" {
     inline = [
       "sudo dnf install -y python3.14-pip git",
       "sudo python3.14 -m pip install ansible",
-      "sudo python3.14 -m ansible.cli.pull -U ${var.ansible_repo} roboshop.yml -e component_name=${each.value.component_name}"
+      "sudo /usr/local/bin/ansible-pull -U ${var.ansible_repo} roboshop.yml -e component_name=${each.value.component_name}"
     ]
   }
 }
