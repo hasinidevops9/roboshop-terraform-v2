@@ -1,4 +1,3 @@
-```hcl
 # Provisioners on the instance run only at create time.
 # A null_resource can run again when the trigger values change.
 #
